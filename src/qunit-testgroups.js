@@ -62,7 +62,7 @@ var TestGroups = {
 		var outline = this._root.outline(baseUrl);
 		return outline;
 	},
-	log : (window.console ? function() { return console.log.apply(console, arguments); } : function(){}),
+	log : (window.console ? function() { return console.log.apply(console, arguments); } : function(){})
 };
 
 
@@ -150,13 +150,13 @@ TestGroup.prototype.outline = function(baseUrl) {
 
 TestGroup.prototype._outlineItem = function(baseUrl) {
 	var item = $("<li/>");
-	
+
 	var link = TestGroup._makeOutlineLink(this.name, baseUrl);
 	item.append(link);
-	
+
 	var itemsList = this._outlineItemsList(baseUrl);
 	item.append(itemsList);
-	
+
 	return item;
 };
 
@@ -175,8 +175,8 @@ function TestFile(name, file) {
 	if(typeof name != "string") {
 		throw new TypeError("name argument should be string");
 	}
-	if(typeof file != "string") {
-		throw new TypeError("file argument should be string");
+	if($.type(file) != "array") {
+		throw new TypeError("file argument should be array");
 	}
 	this.name = name;
 	this.file = file;
@@ -191,15 +191,17 @@ TestFile.asInstance = function(object) {
 };
 
 TestFile.prototype.loadAndRun = function() {
-	ScriptLoader.load(this.file);
+    for(var i = 0; i < this.file.length; i++) {
+    	ScriptLoader.load(this.file[i]);
+    }
 };
 
 TestFile.prototype._outlineItem = function(baseUrl) {
 	var item = $("<li/>");
-	
+
 	var link = TestGroup._makeOutlineLink(this.name, baseUrl);
 	item.append(link);
-	
+
 	return item;
 };
 
@@ -242,22 +244,28 @@ ScriptLoader = {
 	 */
 	currentScript : null,
 	queue : [],
+    loaded : {},
 	load : function(url) {
-		TestGroups.log("Loading", url);
-		var scriptElement = this.createScriptElement(url);
-		this.queue.push(scriptElement);
-		this.loadNextScript();
+        if(url in this.loaded) {
+            TestGroups.log("Skipping", url);
+        } else {
+            this.loaded[url] = true;
+            TestGroups.log("Loading", url);
+            var scriptElement = this.createScriptElement(url);
+            this.queue.push(scriptElement);
+            this.loadNextScript();
+        }
 	},
 	createScriptElement : function(url) {
 		var scriptElement = document.createElement("script");
 		var handler = function(){
 			ScriptLoader.scriptLoadedHandler(url);
 		};
-		
+
 		scriptElement.addEventListener("load", handler, false);
 		scriptElement.addEventListener("error", handler, false);
 		scriptElement.src = url;
-		
+
 		return scriptElement;
 	},
 	scriptLoadedHandler : function(url) {
@@ -277,11 +285,11 @@ ScriptLoader = {
 	reset : function() {
 		this.currentScript = null;
 		this.queue = [];
-	},
+	}
 };
 
 
-$(document).ready(function() {
+$(function() {
 	if(TestGroups._shouldLoadAndRunTests()) {
 		TestGroups._loadAndRunTestByUrlArg();
 	}
